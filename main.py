@@ -1,41 +1,69 @@
-from typing import List, Optional, Union, Annotated
-from fastapi import FastAPI, HTTPException
+from typing import Annotated
+from fastapi import Depends, FastAPI, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session
-from db import *
+import models
+from db import engine, SessionLocal
+from sqlalchemy.orm import Session
 
 app = FastAPI()
+models.Base.metadata.create_all(bind=engine)
 
-@app.post('/create/note/')
-async def create_note(note:Notes):
-    with Session(engine) as session:
-        session.add(note)
-        session.commit()
-        session.refresh(note)
-        return note
 
- 
-@app.get('/note/{id}')
-async def get_note(id:int):
-    with Session(engine) as session:
-        notes = session.get(Notes, id)
-        if not notes:
-            raise HTTPException(status_code=404, detail="ToDoNote not found")
-        else:
-            notes = session.exec(select(Notes)).all()
-            return notes
+class NotesBase(BaseModel):
+    title : str 
+    description : str
 
-@app.get('/read/note', response_model=List[Notes])
-async def read_note():
-    with Session(engine) as session:
-        notes = session.exec(select(Notes)).all()
-        return notes
+#Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-@app.delete('/delete/note/{id}/')
-async def delete_note(id:int):
-    with Session(engine) as session:
-        notes = session.get(Notes, id)
-        if not notes:
-            raise HTTPException(status_code=404, detail="ToDoNote not found")
-        session.delete(notes)
-        session.commit()
-        return {"ok": True}
+db_dependency = Annotated[Session, Depends(get_db)]
+
+#Note by id
+@app.get('/note/{note_id}')
+async def get_note(note_id:int, db: db_dependency):
+    result = db.query(models.Notes).filter(models.Notes.id==note_id).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="ToDoNote not found")
+    return result
+
+#All notes
+@app.get('/read/note')
+async def read_note(db:db_dependency):
+    all_note = db.query(models.Notes).all()
+    return all_note
+
+#Create note
+@app.post('/create/notes/')
+async def create_notes(note: NotesBase, db: db_dependency):
+    db_notes = models.Notes(title=note.title,description=note.description )
+    db.add(db_notes)
+    db.commit()
+    db.refresh(db_notes)
+    return db_notes
+
+#Update notes by id
+
+@app.put('/note/update/{note_id}')
+async def update_note(note_id:int, note:NotesBase, db:db_dependency):
+    update = db.query(models.Notes).filter(models.Notes.id==note_id).first() 
+    update.title = note.title
+    update.description = note.description
+    db.commit()
+    db.refresh(update)
+    return update
+
+#Delete note by id
+@app.delete('/delete/note/{note_id}/')
+async def delete_note(note_id:int, db:db_dependency):
+    note = db.query(models.Notes).filter(models.Notes.id==note_id).first()
+    db.delete(note)
+    db.commit()
+    return {"ok": True}
+
+
