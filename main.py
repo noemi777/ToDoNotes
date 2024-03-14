@@ -62,6 +62,39 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db = Depends(g
     return {"message": "Login exitoso",'access_token': token} 
     return {"message": "Login exitoso"} 
 
+class Autenticacion:
+    def __init__(self):
+        self.email = ""
+        self.hashed_password = ""
+
+    def obtener_datos(self, datos_dict):
+        if isinstance(datos_dict, dict):
+            self.email = datos_dict.get("email", "")
+            self.hashed_password = datos_dict.get("hashed_password", "")
+            if self.email and self.hashed_password:
+                return True
+            else:
+                raise HTTPException(status_code=400, detail="Faltan campos obligatorios")
+        else:
+            raise HTTPException(status_code=400, detail="El formato de datos no es válido. Debe ser un diccionario.")
+
+    def mostrar_datos(self):
+        return {
+            "Usuario": self.email,
+            "Contraseña (hash)": self.hashed_password
+        }
+
+autenticacion = Autenticacion()
+
+@app.post("/autenticacion")
+async def procesar_datos(datos: dict):
+    try:
+        autenticacion.obtener_datos(datos)
+        return autenticacion.mostrar_datos()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al procesar los datos: {e}")
+
+
 """@app.post('/login')
 #async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
 async def login(email: str, hashed_password: str, db:db_dependency):
