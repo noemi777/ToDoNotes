@@ -31,12 +31,18 @@ def get_password_hash(password):
     if not pwd_context.verify(hashed_password, user.hashed_password):
         return False
     return user"""
+def create_access_token(data: dict, expires_delta: timedelta):
+    to_encode = data
+    expire = datetime.now(timezone.utc) + expires_delta
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, "secret_key", algorithm="HS256")
+    return encoded_jwt
 
-def create_access_token(email:str, user_id:int, expires_delta: timedelta):
+"""def create_access_token(email:str, user_id:int, expires_delta: timedelta):
     enconde = {'sub': email, 'id': user_id}
     expires = datetime.now(timezone.utc) + expires_delta
     enconde.update({'exp':expires})
-    return jwt.encode(enconde, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(enconde, SECRET_KEY, algorithm=ALGORITHM)"""
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     try:

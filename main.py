@@ -62,37 +62,21 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db = Depends(g
     return {"message": "Login exitoso",'access_token': token} 
     return {"message": "Login exitoso"} 
 
-class Autenticacion:
-    def __init__(self):
-        self.email = ""
-        self.hashed_password = ""
 
-    def obtener_datos(self, datos_dict):
-        if isinstance(datos_dict, dict):
-            self.email = datos_dict.get("email", "")
-            self.hashed_password = datos_dict.get("hashed_password", "")
-            if self.email and self.hashed_password:
-                return True
-            else:
-                raise HTTPException(status_code=400, detail="Faltan campos obligatorios")
-        else:
-            raise HTTPException(status_code=400, detail="El formato de datos no es válido. Debe ser un diccionario.")
-
-    def mostrar_datos(self):
-        return {
-            "Usuario": self.email,
-            "Contraseña (hash)": self.hashed_password
-        }
-
-autenticacion = Autenticacion()
-
-@app.post("/autenticacion")
-async def procesar_datos(datos: dict):
-    try:
-        autenticacion.obtener_datos(datos)
-        return autenticacion.mostrar_datos()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error al procesar los datos: {e}")
+@app.post("/token")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = authenticate_user(form_data.username, form_data.password, db)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email o contraseña incorrectos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=30)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 """@app.post('/login')
@@ -105,14 +89,21 @@ async def login(email: str, hashed_password: str, db:db_dependency):
                             detail='User not validated')
     token = create_access_token(user.email, user.id, timedelta(minutes=20))
     return {"message": "Login exitoso",'access_token': token} """
-
-def authenticate_user(username:str, hashed_password:str, db:db_dependency):
+def authenticate_user(username: str, hashed_password: str, db_session):
+    user = db_session.query(UserModel).filter(UserModel.email == username).first()
+  #  user = db_dependency.get(email)
+    if not user:
+        return False
+    if not pwd_context.verify(hashed_password, user.hashed_password):
+        return False
+    return user
+"""def authenticate_user(username:str, hashed_password:str, db:db_dependency):
     user = db.query(UserModel).filter(UserModel.email == username).first()
     if not user:
         return False 
     if not pwd_context.verify(hashed_password, user.hashed_password):
         return False
-    return user
+    return user"""
 
 @app.get('/user/me', status_code=status.HTTP_200_OK)
 async def user(user:user_dependency, db: db_dependency):
