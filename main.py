@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import  UserCreate, NotesBase
-from crud import authenticate_user, create_access_token, get_password_hash, user_dependency
+from crud import create_access_token, get_password_hash, user_dependency
 
 
 app = FastAPI()
