@@ -62,8 +62,10 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"message": "Login exitoso"} """
 
 @app.post('/login')
-async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
-    user = authenticate_user(form_data.username, form_data.password, db)
+#async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
+async def login(email: str, password: str, db:db_dependency):
+    user = authenticate_user(email, password, db)
+    #user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='User not validated')
