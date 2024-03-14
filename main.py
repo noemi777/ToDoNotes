@@ -48,9 +48,13 @@ async def create_user_account (pwd:UserCreate, db:db_dependency):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return new_user
+    #Generet token for each new user
 
-@app.post('/token')
+    access_token = create_access_token(new_user.email, new_user.id, timedelta(minutes=20))
+    return {'message': 'New user as been created', 'access_token': access_token}
+    
+
+"""@app.post('/token')
 async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
@@ -58,7 +62,7 @@ async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Dep
                             detail='User not validated')
     token = create_access_token(user.email, user.id, timedelta(minutes=20))
 
-    return {'access_token':token, 'token_type': 'bearer'}
+    return {'access_token':token, 'token_type': 'bearer'}"""
 
 @app.get('/user/me', status_code=status.HTTP_200_OK)
 async def user(user:user_dependency, db: db_dependency):
@@ -74,11 +78,6 @@ async def get_note(note_id:int, db: db_dependency):
         raise HTTPException(status_code=404, detail="ToDoNote not found")
     return result
 
-#All notes
-"""@app.get('/read/note')
-async def read_note(db:db_dependency):
-    all_note = db.query(models.Notes).all()
-    return all_note"""
 
 #Create note by user id
 @app.post("/users/{user_id}/notes/")
@@ -89,14 +88,6 @@ async def create_item_for_user(user_id: int, note:NotesBase, db:db_dependency):
     db.refresh(db_note)
     return db_note
     
-#Create note without user_id
-"""@app.post('/create/notes/')
-async def create_notes(note: NotesBase, db: db_dependency):
-    db_notes = models.Notes(title=note.title,description=note.description )
-    db.add(db_notes)
-    db.commit()
-    db.refresh(db_notes)
-    return db_notes"""
 
 #Update notes by id
 
