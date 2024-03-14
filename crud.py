@@ -22,13 +22,13 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def authenticate_user(username:str, password:str, db):
+"""def authenticate_user(username:str, password:str, db):
     user = db.query(UserModel).filter(UserModel.email == username).first()
     if not user:
         return False 
     if not pwd_context.verify(password, user.hashed_password):
         return False
-    return user
+    return user"""
 
 def create_access_token(email:str, user_id:int, expires_delta: timedelta):
     enconde = {'sub': email, 'id': user_id}
