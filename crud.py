@@ -6,9 +6,9 @@ from models import UserModel
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from jose import JWTError, jwt
-from db import SECRET_KEY, ALGORITHM
+from db import SECRET_KEY, ALGORITHM, get_db
 
-
+db_dependency = Annotated[Session, Depends(get_db)]
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated='auto')
@@ -22,7 +22,9 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def authenticate_user(username:str, password:str, db):
+
+
+def authenticate_user(username:str, password:str, db:db_dependency):
     user = db.query(UserModel).filter(UserModel.email == username).first()
     if not user:
         return False 
