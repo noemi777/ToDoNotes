@@ -52,16 +52,17 @@ async def create_user_account (pwd:UserCreate, db:db_dependency):
     access_token = create_access_token(new_user.email, new_user.id, timedelta(minutes=20))
     return {'message': 'New user as been created', 'access_token': access_token}
 
-"""@app.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(form_data.username, form_data.password)
+@app.post("/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db = Depends(get_db)):
+    user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(status_code=401, detail="Email o contraseña incorrectos")
     # Aquí podrías generar un token JWT para autenticación si lo deseas
     token = create_access_token(user.email, user.id, timedelta(minutes=20))
-    return {"message": "Login exitoso"} """
+    return {"message": "Login exitoso",'access_token': token} 
+    return {"message": "Login exitoso"} 
 
-@app.post('/login')
+"""@app.post('/login')
 #async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
 async def login(email: str, hashed_password: str, db:db_dependency):
     user = authenticate_user(email, hashed_password, db)
@@ -70,13 +71,13 @@ async def login(email: str, hashed_password: str, db:db_dependency):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='User not validated')
     token = create_access_token(user.email, user.id, timedelta(minutes=20))
-    return {"message": "Login exitoso",'access_token': token} 
+    return {"message": "Login exitoso",'access_token': token} """
 
-def authenticate_user(email:str, hashed_password:str, db:db_dependency):
-    user = db.query(UserModel).filter(UserModel.email == email).first()
+def authenticate_user(username:str, password:str, db):
+    user = db.query(UserModel).filter(UserModel.email == username).first()
     if not user:
         return False 
-    if not pwd_context.verify(hashed_password, user.hashed_password):
+    if not pwd_context.verify(password, user.hashed_password):
         return False
     return user
 
