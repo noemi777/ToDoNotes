@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import  UserCreate, NotesBase
-from crud import create_access_token, get_password_hash, user_dependency, authenticate_user
+from crud import create_access_token, get_password_hash, user_dependency, pwd_context
 
 
 app = FastAPI()
@@ -72,6 +72,13 @@ async def login(email: str, hashed_password: str, db:db_dependency):
     token = create_access_token(user.email, user.id, timedelta(minutes=20))
     return {"message": "Login exitoso",'access_token': token} 
 
+def authenticate_user(email:str, hashed_password:str, db:db_dependency):
+    user = db.query(UserModel).filter(UserModel.email == email).first()
+    if not user:
+        return False 
+    if not pwd_context.verify(hashed_password, user.hashed_password):
+        return False
+    return user
 
 @app.get('/user/me', status_code=status.HTTP_200_OK)
 async def user(user:user_dependency, db: db_dependency):

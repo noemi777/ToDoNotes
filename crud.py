@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from db import SECRET_KEY, ALGORITHM, get_db
 
-db_dependency = Annotated[Session, Depends(get_db)]
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated='auto')
@@ -24,13 +24,13 @@ def get_password_hash(password):
 
 
 
-def authenticate_user(username:str, password:str, db:db_dependency):
-    user = db.query(UserModel).filter(UserModel.email == username).first()
+"""def authenticate_user(email:str, hashed_password:str, db:db_dependency):
+    user = db.query(UserModel).filter(UserModel.email == email).first()
     if not user:
         return False 
-    if not pwd_context.verify(password, user.hashed_password):
+    if not pwd_context.verify(hashed_password, user.hashed_password):
         return False
-    return user
+    return user"""
 
 def create_access_token(email:str, user_id:int, expires_delta: timedelta):
     enconde = {'sub': email, 'id': user_id}
