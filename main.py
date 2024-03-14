@@ -37,7 +37,6 @@ def root():
 #Create user
 @app.post('/create/user')
 async def create_user_account (pwd:UserCreate, db:db_dependency):
-
     new_user = models.UserModel(
         email = pwd.email,
         nickname = pwd.nickname,
@@ -46,13 +45,10 @@ async def create_user_account (pwd:UserCreate, db:db_dependency):
         registered_at = datetime.now(),
         updated_at = datetime.now()
     )
-    if UserModel.email:
-        raise HTTPException(status_code=422, detail='Email exists')
-    else:
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-        return new_user
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
 
 @app.post('/token')
 async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
