@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import  UserCreate, NotesBase
-from crud import create_access_token, get_password_hash, user_dependency
+from crud import create_access_token, get_password_hash, user_dependency, authenticate_user
 
 
 app = FastAPI()
@@ -21,7 +21,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=['GET', 'POST', 'DELETE', 'PUT'],
     allow_headers=["*"],
 )
 
@@ -52,7 +52,14 @@ async def create_user_account (pwd:UserCreate, db:db_dependency):
 
     access_token = create_access_token(new_user.email, new_user.id, timedelta(minutes=20))
     return {'message': 'New user as been created', 'access_token': access_token}
-    
+
+@app.post("/login")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Email o contraseña incorrectos")
+    # Aquí podrías generar un token JWT para autenticación si lo deseas
+    return {"message": "Login exitoso"}  
 
 """@app.post('/token')
 async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
