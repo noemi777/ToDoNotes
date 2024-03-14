@@ -73,11 +73,11 @@ async def login(email: str, hashed_password: str, db:db_dependency):
     token = create_access_token(user.email, user.id, timedelta(minutes=20))
     return {"message": "Login exitoso",'access_token': token} """
 
-def authenticate_user(username:str, password:str, db):
+def authenticate_user(username:str, hashed_password:str, db:db_dependency):
     user = db.query(UserModel).filter(UserModel.email == username).first()
     if not user:
         return False 
-    if not pwd_context.verify(password, user.hashed_password):
+    if not pwd_context.verify(hashed_password, user.hashed_password):
         return False
     return user
 
