@@ -8,16 +8,17 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
-#WORKDIR /home
+
+
 WORKDIR /app
 
 COPY * . 
+
 # Install pip requirements
 RUN pip install --upgrade pip
 COPY ./requirements.txt /app/requirements.txt
 
-#RUN pip install --no-cache-dir --upgrade -r requirements.txt
-RUN python -m pip install -r requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 COPY . /app
 
@@ -27,5 +28,4 @@ COPY . /app
 #USER appuser
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
-#CMD ["gunicorn", "--bind", "0.0.0.0:8000", "-k", "uvicorn.workers.UvicornWorker", "main:app"]
 CMD ["uvicorn", "main:app", "--reload","--host", "0.0.0.0", "--port", "8000"]
