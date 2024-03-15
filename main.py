@@ -1,12 +1,12 @@
 from datetime import timedelta, datetime
 from typing import Annotated, Optional
-from fastapi import Depends, FastAPI, HTTPException, Header, status
+from fastapi import Depends, FastAPI, HTTPException,status
 import models
 from db import engine, get_db
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
-from schemas import UserCreate, NotesBase, Token, TokenData, User
-from crud import create_access_token, get_password_hash, user_dependency, pwd_context, get_current_user
+from schemas import UserCreate, NotesBase, Token, TokenData
+from crud import create_access_token, get_password_hash, user_dependency, pwd_context
 
 
 app = FastAPI()
@@ -75,22 +75,12 @@ def authenticate_user(email: str, password: str, db: db_dependency):
     return user
 
 
+
 @app.get("/user/me", status_code=status.HTTP_200_OK)
-async def user(access_token: Optional[str] = None):
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Token not provided")
-
-    current_user = get_current_user(access_token)
-    return {"User": current_user}
-
-
-"""@app.get("/user/me", status_code=status.HTTP_200_OK)
-async def user(user: get_current_user, db: db_dependency):
+async def user(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail="Authentication Failes")
     return {"User": user}
-    
-"""
 
 # Note by id
 @app.get("/note/{note_id}")
