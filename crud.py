@@ -27,7 +27,8 @@ def create_access_token(email: str, user_id: int, expires_delta: timedelta):
     return jwt.encode(enconde, SECRET_KEY, algorithm=ALGORITHM)
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+#async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_current_user(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")

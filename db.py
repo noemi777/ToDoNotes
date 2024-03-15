@@ -11,7 +11,7 @@ load_dotenv(dotenv_path=env_path)
 
 # Access DB
 URL_DATABASE = str = os.getenv("URL_DATABASE")
-print(URL_DATABASE)
+
 engine = create_engine(URL_DATABASE)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
