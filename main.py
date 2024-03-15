@@ -6,7 +6,7 @@ from db import engine, get_db
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from schemas import  UserCreate, NotesBase, Token
+from schemas import  UserCreate, NotesBase, Token, TokenData
 from crud import create_access_token, get_password_hash, user_dependency, authenticate_user
 
 
@@ -52,13 +52,13 @@ async def create_user_account (pwd:UserCreate, db:db_dependency):
     return {'message': 'New user as been created', 'access_token':access_token}
 
 @app.post('/token', response_model=Token)
-async def logion_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db:db_dependency):
-    user = authenticate_user(form_data.username, form_data.password, db)
+async def login_for_access_token(credentials: TokenData, db:db_dependency):
+    user = authenticate_user(credentials.email, credentials.password, db)
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User not validated')
     token = create_access_token(user.email, user.id, timedelta(minutes=20))
 
-    return {'access_token': token, 'token_type': 'bearer', 'email': user.email}
+    return {'access_token': token, 'token_type': 'bearer'}
 
 
 @app.get('/user/me', status_code=status.HTTP_200_OK)

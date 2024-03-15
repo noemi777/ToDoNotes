@@ -9,6 +9,7 @@ class Token(BaseModel):
     
 class TokenData(BaseModel):
     email : str
+    password: str
     #scopes: list[str] = []
 
 class NotesBase(BaseModel):
