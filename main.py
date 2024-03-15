@@ -1,13 +1,15 @@
 from datetime import timedelta, datetime
-from typing import Annotated
-from fastapi import Depends, FastAPI, HTTPException, status
+from typing import Annotated, Type
+from fastapi import Depends, FastAPI, HTTPException, Query, status
+from pydantic import BaseModel, Json, ValidationError
+import pydantic
 from models import UserModel
 import models
 from db import engine, get_db
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from schemas import  UserCreate, NotesBase
+from schemas import  UserCreate, NotesBase, Token
 from crud import create_access_token, get_password_hash, user_dependency, pwd_context
 
 
@@ -49,61 +51,26 @@ async def create_user_account (pwd:UserCreate, db:db_dependency):
     db.commit()
     db.refresh(new_user)
     #Generet token for each new user
-    access_token = create_access_token(new_user.email, new_user.id, timedelta(minutes=20))
-    return {'message': 'New user as been created', 'access_token': access_token}
+    #access_token = create_access_token(new_user.email, new_user.id, timedelta(minutes=20))
+    return {'message': 'New user as been created'}
 
-@app.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db = Depends(get_db)):
+@app.post('/token', response_model=Token)
+async def logion_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db:db_dependency):
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
-        raise HTTPException(status_code=401, detail="Email o contraseña incorrectos")
-    # Aquí podrías generar un token JWT para autenticación si lo deseas
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User not validated')
     token = create_access_token(user.email, user.id, timedelta(minutes=20))
-    return {"message": "Login exitoso",'access_token': token} 
-    return {"message": "Login exitoso"} 
+
+    return {'access_token': token, 'token_type': 'bearer', 'email': user.email}
 
 
-@app.post("/token")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = authenticate_user(form_data.username, form_data.password, db)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email o contraseña incorrectos",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=30)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
-
-"""@app.post('/login')
-#async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
-async def login(email: str, hashed_password: str, db:db_dependency):
-    user = authenticate_user(email, hashed_password, db)
-    #user = authenticate_user(form_data.username, form_data.password, db)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail='User not validated')
-    token = create_access_token(user.email, user.id, timedelta(minutes=20))
-    return {"message": "Login exitoso",'access_token': token} """
-def authenticate_user(username: str, hashed_password: str, db_session):
-    user = db_session.query(UserModel).filter(UserModel.email == username).first()
-  #  user = db_dependency.get(email)
-    if not user:
-        return False
-    if not pwd_context.verify(hashed_password, user.hashed_password):
-        return False
-    return user
-"""def authenticate_user(username:str, hashed_password:str, db:db_dependency):
+def authenticate_user( username:str , password:str, db):
     user = db.query(UserModel).filter(UserModel.email == username).first()
     if not user:
-        return False 
-    if not pwd_context.verify(hashed_password, user.hashed_password):
         return False
-    return user"""
+    if not pwd_context.verify(password, user.hashed_password):
+        return False
+    return user
 
 @app.get('/user/me', status_code=status.HTTP_200_OK)
 async def user(user:user_dependency, db: db_dependency):
@@ -148,5 +115,4 @@ async def delete_note(note_id:int, db:db_dependency):
     db.delete(note)
     db.commit()
     return {"Message": 'Note deleted'}
-
 
