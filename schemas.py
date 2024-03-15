@@ -5,12 +5,11 @@ from datetime import datetime
 class Token(BaseModel):
     access_token: str
     token_type: str
-    email: str
+    #email: str
     
-    """
 class TokenData(BaseModel):
-    email: str 
-    #scopes: list[str] = []"""
+    email : str
+    #scopes: list[str] = []
 
 class NotesBase(BaseModel):
     title : str 
