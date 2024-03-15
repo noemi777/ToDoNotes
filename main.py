@@ -1,12 +1,11 @@
 from datetime import timedelta, datetime
 from typing import Annotated
-from fastapi import Depends, FastAPI, HTTPException,status
+from fastapi import Depends, FastAPI, HTTPException, status
 import models
 from db import engine, get_db
 from sqlalchemy.orm import Session
-from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from schemas import  UserCreate, NotesBase, Token, TokenData
+from schemas import UserCreate, NotesBase, Token, TokenData
 from crud import create_access_token, get_password_hash, user_dependency, pwd_context
 
 
@@ -15,52 +14,59 @@ app = FastAPI()
 
 models.Base.metadata.create_all(bind=engine)
 
-#CORS
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=['GET', 'POST', 'DELETE', 'PUT'],
+    allow_methods=["GET", "POST", "DELETE", "PUT"],
     allow_headers=["*"],
 )
 
-#Dependency
+# Dependency
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
 
-@app.get('/')
+@app.get("/")
 def root():
-    return 'Hola, Mundo'
+    return "Hola, Mundo"
 
-#Create user
-@app.post('/create/user')
-async def create_user_account (pwd:UserCreate, db:db_dependency):
+
+# Create user
+@app.post("/create/user")
+async def create_user_account(pwd: UserCreate, db: db_dependency):
     new_user = models.UserModel(
-        email = pwd.email,
-        nickname = pwd.nickname,
+        email=pwd.email,
+        nickname=pwd.nickname,
         full_name=pwd.full_name,
-        hashed_password = get_password_hash(pwd.hashed_password),
-        registered_at = datetime.now(),
-        updated_at = datetime.now()
+        hashed_password=get_password_hash(pwd.hashed_password),
+        registered_at=datetime.now(),
+        updated_at=datetime.now(),
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    #Generet token for each new user
-    access_token = create_access_token(new_user.email, new_user.id, timedelta(minutes=20))
-    return {'message': 'New user as been created', 'access_token':access_token}
+    # Generet token for each new user
+    access_token = create_access_token(
+        new_user.email, new_user.id, timedelta(minutes=20)
+    )
+    return {"message": "New user as been created", "access_token": access_token}
 
-@app.post('/token', response_model=Token)
-async def login_for_access_token(credentials: TokenData, db:db_dependency):
+
+@app.post("/token", response_model=Token)
+async def login_for_access_token(credentials: TokenData, db: db_dependency):
     user = authenticate_user(credentials.email, credentials.password, db)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User not validated')
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not validated"
+        )
     token = create_access_token(user.email, user.id, timedelta(minutes=20))
 
-    return {'access_token': token, 'token_type': 'bearer'}
+    return {"access_token": token, "token_type": "bearer"}
 
-def authenticate_user( email:str , password:str, db: db_dependency):
+
+def authenticate_user(email: str, password: str, db: db_dependency):
     user = db.query(models.UserModel).filter(models.UserModel.email == email).first()
     if not user:
         return False
@@ -68,47 +74,57 @@ def authenticate_user( email:str , password:str, db: db_dependency):
         return False
     return user
 
-@app.get('/user/me', status_code=status.HTTP_200_OK)
-async def user(user:user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail='Authentication Failes')
-    return {'User':user}
 
-#Note by id
-@app.get('/note/{note_id}')
-async def get_note(note_id:int, db: db_dependency):
-    result = db.query(models.Notes).filter(models.Notes.id==note_id).first()
+@app.get("/user/me", status_code=status.HTTP_200_OK)
+async def user(user: user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication Failes")
+    return {"User": user}
+
+
+# Note by id
+@app.get("/note/{note_id}")
+async def get_note(note_id: int, db: db_dependency):
+    result = db.query(models.Notes).filter(models.Notes.id == note_id).first()
     if not result:
         raise HTTPException(status_code=404, detail="ToDoNote not found")
     return result
 
 
-#Create note by user id
+# Create note by user id
 @app.post("/users/{user_id}/notes/")
-async def create_item_for_user(user_id: int, note:NotesBase, db:db_dependency):
-    db_note = models.Notes(title=note.title, description=note.description, user_id=user_id)
+async def create_item_for_user(user_id: int, note: NotesBase, db: db_dependency):
+    db_note = models.Notes(
+        title=note.title, description=note.description, user_id=user_id
+    )
     db.add(db_note)
     db.commit()
     db.refresh(db_note)
     return db_note
-    
 
-#Update notes by id
 
-@app.put('/note/update/{note_id}')
-async def update_note(note_id:int, note:NotesBase, db:db_dependency):
-    update = db.query(models.Notes).filter(models.Notes.id==note_id).first() 
+@app.get('/read/note')
+async def read_note(db:db_dependency):
+    all_note = db.query(models.Notes).all()
+    return all_note
+
+# Update notes by id
+
+
+@app.put("/note/update/{note_id}")
+async def update_note(note_id: int, note: NotesBase, db: db_dependency):
+    update = db.query(models.Notes).filter(models.Notes.id == note_id).first()
     update.title = note.title
     update.description = note.description
     db.commit()
     db.refresh(update)
     return update
 
-#Delete note by id
-@app.delete('/delete/note/{note_id}/')
-async def delete_note(note_id:int, db:db_dependency):
-    note = db.query(models.Notes).filter(models.Notes.id==note_id).first()
+
+# Delete note by id
+@app.delete("/delete/note/{note_id}/")
+async def delete_note(note_id: int, db: db_dependency):
+    note = db.query(models.Notes).filter(models.Notes.id == note_id).first()
     db.delete(note)
     db.commit()
-    return {"Message": 'Note deleted'}
-
+    return {"Message": "Note deleted"}

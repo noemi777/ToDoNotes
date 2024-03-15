@@ -1,4 +1,7 @@
+# TO-DO-NOTES
+Proyecto para CRUD de un TO-DO-NOTES, utilizando FastAPI, Postgresql, SQLModel y JWT para autenticación 
+## Instalación
 
-API para ToDo Notes por Usuario <br>
-Autenticación con JWT <br>
-DB con SQLModel y Postgresql
+## Uso
+
+
