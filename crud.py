@@ -45,10 +45,4 @@ async def get_current_user(token):
 
 
 
-def create_access_token_user(email: str, user_id: int, expires_delta: timedelta):
-    expire = datetime.now(timezone.utc) + expires_delta
-    payload = {"sub": email, "id": user_id, "exp": expire}
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
-
 user_dependency = Annotated[Session, Depends(get_current_user)]

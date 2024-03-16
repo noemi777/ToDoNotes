@@ -7,7 +7,7 @@ from db import ALGORITHM, SECRET_KEY, engine, get_db
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import UserCreate, NotesBase, Token, TokenData, UserBase
-from crud import create_access_token_user, get_password_hash, user_dependency, pwd_context, oauth2_scheme
+from crud import create_access_token, get_password_hash, user_dependency, pwd_context, oauth2_scheme
 
 
 app = FastAPI()
@@ -49,7 +49,7 @@ async def create_user_account(pwd: UserCreate, db: db_dependency):
     db.commit()
     db.refresh(new_user)
     # Generet token for each new user
-    access_token = create_access_token_user(
+    access_token = create_access_token(
         new_user.email, new_user.id, timedelta(minutes=20)
     )
     return {"message": "New user as been created", "access_token": access_token}
@@ -62,7 +62,7 @@ async def login_for_access_token(credentials: TokenData, db: db_dependency):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not validated"
         )
-    token = create_access_token_user(user.email, user.id, timedelta(minutes=20))
+    token = create_access_token(user.email, user.id, timedelta(minutes=20))
 
     return {"access_token": token, "token_type": "bearer"}
 
@@ -128,9 +128,32 @@ async def create_item_for_user(user_id: int, note: NotesBase, db: db_dependency)
     return db_note
 
 
+# @app.get('/read/note')
+# async def read_note(db:db_dependency):
+#     all_note = db.query(models.Notes).all()
+#     return all_note
+
+def decode_jwt(token: str) -> int:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: int = payload.get("user_id")
+        if user_id is None:
+            raise HTTPException(status_code=400, detail="User ID not found in token")
+        return user_id
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
 @app.get('/read/note')
-async def read_note(db:db_dependency):
-    all_note = db.query(models.Notes).all()
+async def read_note(authorization: Optional[str] = None, db: db_dependency = Depends()):
+    if authorization is None:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+
+    # Extract the token part from the Authorization header
+    token = authorization.split(" ")[1]
+    user_id = decode_jwt(token)
+
+    # Fetch all tasks related to the user ID
+    all_note = db.query(models.Notes).filter(models.Notes.user_id == user_id).all()
     return all_note
 
 @app.get('/read/note/{user_id}/{note_id}')
