@@ -123,7 +123,7 @@ async def read_note(db:db_dependency, authorization: Optional[str] = None):
     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
     user_id = payload.get('id')
-    all_note = db.query(models.Notes).filter(models.Notes.user_id == user_id).first()
+    all_note = db.query(models.Notes).filter(models.Notes.user_id == user_id).all()
     return all_note
 
 
