@@ -121,7 +121,7 @@ async def read_note(db:db_dependency, authorization: Optional[str] = None):
     # Extract the token part from the Authorization header
     token = authorization.split(" ")[0]
     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    print(payload)
+
     user_id = payload.get('id')
     all_note = db.query(models.Notes).filter(models.Notes.user_id == user_id).all()
     return all_note
