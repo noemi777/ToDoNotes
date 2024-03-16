@@ -133,15 +133,15 @@ async def create_item_for_user(user_id: int, note: NotesBase, db: db_dependency)
 #     all_note = db.query(models.Notes).all()
 #     return all_note
 
-def decode_jwt(token: str) -> int:
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("user_id")
-        if user_id is None:
-            raise HTTPException(status_code=400, detail="User ID not found in token")
-        return user_id
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+# def decode_jwt(token: str) -> int:
+#     try:
+#         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+#         user_id: int = payload.get("user_id")
+#         if user_id is None:
+#             raise HTTPException(status_code=400, detail="User ID not found in token")
+#         return user_id
+#     except JWTError:
+#         raise HTTPException(status_code=401, detail="Invalid token") 
 
 @app.get('/read/note')
 async def read_note(authorization: Optional[str] = None, db =  Depends(get_db)):
@@ -150,21 +150,11 @@ async def read_note(authorization: Optional[str] = None, db =  Depends(get_db)):
 
     # Extract the token part from the Authorization header
     token = authorization.split(" ")[1]
-    user_id = decode_jwt(token)
+    user_id = jwt.decode(token)
 
     # Fetch all tasks related to the user ID
     all_note = db.query(models.Notes).filter(models.Notes.user_id == user_id).all()
     return all_note
-
-@app.get('/read/note/{user_id}/{note_id}')
-async def read_note_user(user_id:int, note_id: int, db:db_dependency):
-    user = db.query(models.UserModel).filter(models.UserModel.id == user_id).first()
-    note = db.query(models.Notes).filter(models.Notes.id == note_id).first()
-    if not note:
-        raise HTTPException(status_code=404, detail="ToDoNote not found")
-    if not note:
-        raise HTTPException(status_code=404, detail="ToDoNote not found")
-    return note
 
 
 # Update notes by id
