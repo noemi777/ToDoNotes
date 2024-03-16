@@ -114,16 +114,15 @@ async def create_item_for_user(user_id: int, note: NotesBase, db: db_dependency)
 
 
 @app.get('/read/note')
-async def read_note(authorization: Optional[str] = None, db =  Depends(get_db)):
+async def read_note(db:db_dependency, authorization: Optional[str] = None):
     if authorization is None:
         raise HTTPException(status_code=401, detail="Authorization header missing")
 
     # Extract the token part from the Authorization header
     token = authorization.split(" ")[0]
     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    print(payload)
     user_id = payload.get('id')
-#Deberia ser user_id? Creo, tú qué opinas?  Sip, user_id esta bien, creo. Lo deployeamos? Seee haber que sale
-    # Fetch all tasks related to the user ID
     all_note = db.query(models.Notes).filter(models.Notes.user_id == user_id).all()
     return all_note
 
