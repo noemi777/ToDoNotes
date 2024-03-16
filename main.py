@@ -1,12 +1,13 @@
 from datetime import timedelta, datetime
 from typing import Annotated, Optional
 from fastapi import Depends, FastAPI, HTTPException,status
+from jose import JWTError, jwt
 import models
-from db import engine, get_db
+from db import ALGORITHM, SECRET_KEY, engine, get_db
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
-from schemas import UserCreate, NotesBase, Token, TokenData
-from crud import create_access_token, get_password_hash, user_dependency, pwd_context
+from schemas import UserCreate, NotesBase, Token, TokenData, UserBase
+from crud import create_access_token_user, get_password_hash, user_dependency, pwd_context, oauth2_scheme
 
 
 app = FastAPI()
@@ -48,7 +49,7 @@ async def create_user_account(pwd: UserCreate, db: db_dependency):
     db.commit()
     db.refresh(new_user)
     # Generet token for each new user
-    access_token = create_access_token(
+    access_token = create_access_token_user(
         new_user.email, new_user.id, timedelta(minutes=20)
     )
     return {"message": "New user as been created", "access_token": access_token}
@@ -61,7 +62,7 @@ async def login_for_access_token(credentials: TokenData, db: db_dependency):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not validated"
         )
-    token = create_access_token(user.email, user.id, timedelta(minutes=20))
+    token = create_access_token_user(user.email, user.id, timedelta(minutes=20))
 
     return {"access_token": token, "token_type": "bearer"}
 
@@ -91,6 +92,30 @@ async def get_note(note_id: int, db: db_dependency):
     return result
 
 
+#Crear una nota con un usuario logeado
+@app.post("/notes/")
+async def create_note_for_user(note: NotesBase, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(payload)
+        user_id: int = payload.get("id")
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user"
+            )
+
+        db_note = models.Notes(
+            title=note.title, description=note.description, user_id=user_id
+        )
+        db.add(db_note)
+        db.commit()
+        db.refresh(db_note)
+        return db_note
+    except jwt.JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user"
+        )
+
 # Create note by user id
 @app.post("/users/{user_id}/notes/")
 async def create_item_for_user(user_id: int, note: NotesBase, db: db_dependency):
@@ -108,9 +133,18 @@ async def read_note(db:db_dependency):
     all_note = db.query(models.Notes).all()
     return all_note
 
+@app.get('/read/note/{user_id}/{note_id}')
+async def read_note_user(user_id:int, note_id: int, db:db_dependency):
+    user = db.query(models.UserModel).filter(models.UserModel.id == user_id).first()
+    note = db.query(models.Notes).filter(models.Notes.id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="ToDoNote not found")
+    if not note:
+        raise HTTPException(status_code=404, detail="ToDoNote not found")
+    return note
+
+
 # Update notes by id
-
-
 @app.put("/note/update/{note_id}")
 async def update_note(note_id: int, note: NotesBase, db: db_dependency):
     update = db.query(models.Notes).filter(models.Notes.id == note_id).first()
