@@ -6,7 +6,7 @@ import models
 from db import ALGORITHM, SECRET_KEY, engine, get_db
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
-from schemas import UserCreate, NotesBase, Token, TokenData, UserBase
+from schemas import UserCreate, NotesBase, Token, TokenData, UserBase, Notes
 from crud import create_access_token_user, get_password_hash, user_dependency, pwd_context, oauth2_scheme
 
 app = FastAPI()
@@ -93,11 +93,12 @@ async def get_note(note_id: int, db: db_dependency):
 
 #Crear una nota con un usuario logeado
 @app.post("/notes/")
-async def create_note_for_user(note: NotesBase, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def create_note_for_user(note: NotesBase, token: str = Depends(oauth2_scheme), db= Depends(get_db)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         print(payload)
         user_id: int = payload.get("id")
+        print(user_id)
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user"
@@ -111,7 +112,7 @@ async def create_note_for_user(note: NotesBase, token: str = Depends(oauth2_sche
         db.refresh(db_note)
         return db_note
     except jwt.JWTError:
-        raise HTTPException( {'jwt': JWTError},  
+        raise HTTPException( 
             status_code=status.HTTP_401_UNAUTHORIZED
         )
 
@@ -149,7 +150,9 @@ async def read_note(authorization: Optional[str] = Header(None), db=Depends(get_
         raise HTTPException(status_code=401, detail="Authorization header missing")
 
     # Extract the token part from the Authorization header
-    token = authorization.split(" ")[1]
+    if(token.length > 1):
+        token = authorization.split(" ")[1]
+    print(token)
 
     # Decode the JWT token directly to get the user ID
     try:
