@@ -64,7 +64,7 @@ async def login_for_access_token(credentials: TokenData, db: db_dependency):
         )
     token = create_access_token(user.email, user.id, timedelta(minutes=20))
 
-    return {"access_token": token, "token_type": "bearer"}
+    return { "token_type": "bearer","access_token": token}
 
 
 def authenticate_user(email: str, password: str, db: db_dependency):
@@ -119,7 +119,7 @@ async def read_note(db:db_dependency, authorization: Optional[str] = None):
         raise HTTPException(status_code=401, detail="Authorization header missing")
 
     # Extract the token part from the Authorization header
-    token = authorization.split(" ")[0]
+    token = authorization.split(" ")[1]
     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
     user_id = payload.get('id')
