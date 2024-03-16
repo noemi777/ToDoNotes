@@ -144,7 +144,7 @@ def decode_jwt(token: str) -> int:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 @app.get('/read/note')
-async def read_note(authorization: Optional[str] = None, db: db_dependency = Depends()):
+async def read_note(authorization: Optional[str] = None, db =  Depends(get_db)):
     if authorization is None:
         raise HTTPException(status_code=401, detail="Authorization header missing")
 
