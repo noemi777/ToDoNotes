@@ -150,8 +150,9 @@ async def read_note(authorization: Optional[str] = None, db =  Depends(get_db)):
 
     # Extract the token part from the Authorization header
     token = authorization.split(" ")[1]
-    user_id = jwt.decode(token)
-
+    payload = jwt.decode(token)
+    user_id = payload.get('id')
+#Deberia ser user_id? Creo, tú qué opinas?  Sip, user_id esta bien, creo. Lo deployeamos? Seee haber que sale
     # Fetch all tasks related to the user ID
     all_note = db.query(models.Notes).filter(models.Notes.user_id == user_id).all()
     return all_note
