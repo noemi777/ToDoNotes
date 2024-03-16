@@ -1,8 +1,9 @@
 from datetime import timedelta, datetime
 from typing import Annotated, Optional
 from fastapi import Depends, FastAPI, HTTPException,status
+from jose import JWTError, jwt
 import models
-from db import engine, get_db
+from db import ALGORITHM, SECRET_KEY, engine, get_db
 from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import UserCreate, NotesBase, Token, TokenData
@@ -90,6 +91,15 @@ async def get_note(note_id: int, db: db_dependency):
         raise HTTPException(status_code=404, detail="ToDoNote not found")
     return result
 
+@app.get('/read/note/{user_id}/{note_id}')
+async def read_note_user(user_id:int, note_id: int, db:db_dependency):
+    user = db.query(models.UserModel).filter(models.UserModel.id == user_id).first()
+    note = db.query(models.Notes).filter(models.Notes.id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="ToDoNote not found")
+    if not user:
+        raise HTTPException(status_code=404, detail="ToDoNote not found")
+    return note
 
 # Create note by user id
 @app.post("/users/{user_id}/notes/")
@@ -104,13 +114,22 @@ async def create_item_for_user(user_id: int, note: NotesBase, db: db_dependency)
 
 
 @app.get('/read/note')
-async def read_note(db:db_dependency):
-    all_note = db.query(models.Notes).all()
+async def read_note(authorization: Optional[str] = None, db =  Depends(get_db)):
+    if authorization is None:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+
+    # Extract the token part from the Authorization header
+    token = authorization.split(" ")[0]
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    user_id = payload.get('id')
+#Deberia ser user_id? Creo, tú qué opinas?  Sip, user_id esta bien, creo. Lo deployeamos? Seee haber que sale
+    # Fetch all tasks related to the user ID
+    all_note = db.query(models.Notes).filter(models.Notes.user_id == user_id).all()
     return all_note
 
+
+
 # Update notes by id
-
-
 @app.put("/note/update/{note_id}")
 async def update_note(note_id: int, note: NotesBase, db: db_dependency):
     update = db.query(models.Notes).filter(models.Notes.id == note_id).first()
