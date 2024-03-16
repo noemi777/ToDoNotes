@@ -20,12 +20,11 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 
-def create_access_token(email: str, user_id: int, expires_delta: timedelta):
-    enconde = {"sub": email, "id": user_id}
-    expires = datetime.now(timezone.utc) + expires_delta
-    enconde.update({"exp": expires})
-    return jwt.encode(enconde, SECRET_KEY, algorithm=ALGORITHM)
-
+def create_access_token(email: str, user_id: int):
+    encode_data = {"sub": email, "id": user_id}
+    expires = datetime.now(timezone.utc) + timedelta(days=7)
+    encode_data.update({"exp": expires})
+    return jwt.encode(encode_data, SECRET_KEY, algorithm=ALGORITHM)
 
 #async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 async def get_current_user(token):
