@@ -112,7 +112,7 @@ async def create_note_for_user(note: NotesBase, token: str = Depends(oauth2_sche
         db.refresh(db_note)
         return db_note
     except jwt.JWTError:
-        raise HTTPException( {'jwt': JWTError},  #simon así xD https://meet.google.com/woy-bwke-fwc  
+        raise HTTPException( {'jwt': JWTError},  
             status_code=status.HTTP_401_UNAUTHORIZED
         )
 
