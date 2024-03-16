@@ -1,6 +1,6 @@
 from datetime import timedelta, datetime
 from typing import Annotated, Optional
-from fastapi import Depends, FastAPI, HTTPException,status
+from fastapi import Depends, FastAPI, HTTPException,status, Header
 from jose import JWTError, jwt
 import models
 from db import ALGORITHM, SECRET_KEY, engine, get_db
@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import UserCreate, NotesBase, Token, TokenData, UserBase
 from crud import create_access_token_user, get_password_hash, user_dependency, pwd_context, oauth2_scheme
-
 
 app = FastAPI()
 
@@ -143,16 +142,25 @@ async def create_item_for_user(user_id: int, note: NotesBase, db: db_dependency)
 #     except JWTError:
 #         raise HTTPException(status_code=401, detail="Invalid token") 
 
+
 @app.get('/read/note')
-async def read_note(authorization: Optional[str] = None, db =  Depends(get_db)):
+async def read_note(authorization: Optional[str] = Header(None), db=Depends(get_db)):
     if authorization is None:
         raise HTTPException(status_code=401, detail="Authorization header missing")
 
     # Extract the token part from the Authorization header
     token = authorization.split(" ")[1]
-    payload = jwt.decode(token)
-    user_id = payload.get('id')
-#Deberia ser user_id? Creo, tú qué opinas?  Sip, user_id esta bien, creo. Lo deployeamos? Seee haber que sale
+
+    # Decode the JWT token directly to get the user ID
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(payload)
+        user_id: int = payload.get("id")
+        if user_id is None:
+            raise HTTPException(status_code=400, detail="User ID not found in token")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
     # Fetch all tasks related to the user ID
     all_note = db.query(models.Notes).filter(models.Notes.user_id == user_id).all()
     return all_note
